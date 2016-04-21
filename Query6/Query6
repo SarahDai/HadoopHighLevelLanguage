@@ -1,0 +1,59 @@
+library(rmr2)
+
+## customer count based on countrycode
+customercount =
+	function(input, output = NULL,pattern = ","){
+	
+	## customercount-map function
+	## Important: Producing key or value of type Int may not work
+	##            That is why the map() produces ‘1’ as a string
+	cc.map = function(., lines) {
+                customer.list = strsplit(x = lines, split = pattern)
+		keyval(
+			unlist(sapply(customer.list, function(x) x[4])),
+			'1')
+	}
+
+	## customercount-reduce function
+	## Important: Reducer also write the output as string because Int
+	##            may not work
+	cc.reduce = function(countrycode, counts ) {
+		keyval(countrycode, 
+			toString(sum(as.integer(counts)))) 
+	}
+
+	## customercount-mapreduce job configuration
+	mapreduce(
+	input = input,
+	output = output,
+	map = cc.map,
+	reduce = cc.reduce,
+	combine = TRUE,
+	input.format=make.input.format("text"))
+}
+
+## Define inputs and outputs 
+inputPath = '/user/hadoop/cs561/dataset/Customer.txt'
+outputPath = '/user/hadoop/cs561/Project2/output/query6'
+
+## Execute (fire map-reduce job). The output is a binary HDFS file
+customercount(inputPath, outputPath, pattern = ",")
+
+## Get Results from HDFS
+results <- from.dfs(outputPath)
+results
+
+## Decompose the key and value columns
+x <- results$key
+y <- as.integer(results$val)
+
+## Plot the values
+barplot(y, main="NumOfCustomers For Each Country", xlab="CountryCode", ylab="Count", names.arg=x)
+
+## Sort the values and Plot them
+o <- order(y,decreasing = T)
+ordered <- rbind(x[o],y[o])
+barplot(y[o], main="Sorted NumOfCustomers For Each Country", xlab="CountryCode", ylab="Count", names.arg=x[o], col="red")
+
+
+
