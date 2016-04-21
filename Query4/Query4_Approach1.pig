@@ -1,0 +1,11 @@
+trans = LOAD '/user/hadoop/cs561/dataset/Transaction.txt' USING PigStorage(',') AS (transID:int, custID:int, transTotal:double, transNumItems:int, transDesc: chararray);
+A = group trans by custID;
+B = foreach A generate group, COUNT(trans) as numOfTransactions;
+C = group B ALL;
+D = foreach C generate MIN(B.numOfTransactions) as min;
+E = FILTER B BY numOfTransactions == D.min;
+cust = LOAD '/user/hadoop/cs561/dataset/Customer.txt' USING PigStorage(',') AS (ID:int, name:chararray, age:int, CountryCode:int, salary: double);
+alpha = FOREACH cust generate ID, name;
+F = join E by group, alpha by ID;
+G = foreach F generate name as CustomerName, numOfTransactions as LeastNum;
+store G into '/user/hadoop/cs561/Project2/output/query4' USING PigStorage(',');
